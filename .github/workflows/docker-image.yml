@@ -17,13 +17,9 @@ jobs:
         run: |
           echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
-      - name: Create .env file
-        run: |
-          echo "${{ secrets.ENV }}" > .env
-
       - name: Build and tag Docker image
         run: |
-          docker build --no-cache -t ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest --build-arg ENV_FILE=.env .
+          docker build --no-cache -t ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest --build-arg 
           docker tag ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest
 
       - name: Push Docker image to Docker Hub
