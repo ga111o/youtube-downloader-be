@@ -19,7 +19,7 @@ jobs:
 
       - name: Build and tag Docker image
         run: |
-          docker build --no-cache -t ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest
+          docker build --no-cache -t ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest .
           docker tag ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest
 
       - name: Push Docker image to Docker Hub
