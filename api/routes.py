@@ -60,4 +60,13 @@ async def get_file(download_id: str, background_tasks: BackgroundTasks):
             raise HTTPException(status_code=202, detail=str(e))
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/playlist/{playlist_id}")
+async def get_playlist_info(playlist_id: str):
+    """YouTube 플레이리스트 정보를 가져오는 엔드포인트"""
+    try:
+        playlist_info = downloader_service.get_playlist_info(playlist_id)
+        return playlist_info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"플레이리스트 정보 가져오기 실패: {str(e)}") 

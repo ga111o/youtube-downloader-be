@@ -3,3 +3,4 @@ yt-dlp
 pydantic
 python-multipart
 fastapi
+pytube

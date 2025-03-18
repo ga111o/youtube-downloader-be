@@ -4,6 +4,7 @@ import shutil
 from typing import Dict, Any, Optional
 import yt_dlp
 import logging
+from pytube import Playlist, YouTube
 
 # 로그 설정 - 수정된 부분
 logger = logging.getLogger(__name__)
@@ -154,4 +155,55 @@ def cleanup_temp_directory() -> None:
     """임시 디렉토리 정리"""
     if os.path.exists(TEMP_DOWNLOAD_DIR):
         shutil.rmtree(TEMP_DOWNLOAD_DIR, ignore_errors=True)
-    os.makedirs(TEMP_DOWNLOAD_DIR, exist_ok=True) 
+    os.makedirs(TEMP_DOWNLOAD_DIR, exist_ok=True)
+
+def get_playlist_info(playlist_id: str):
+    """플레이리스트의 모든 비디오 정보를 가져옵니다"""
+    try:
+        logger.info(f"플레이리스트 정보 가져오기 시작: {playlist_id}")
+        
+        url = f"https://www.youtube.com/playlist?list={playlist_id}"
+        if playlist_id.startswith('RD'):  # Mix 플레이리스트의 경우
+            url = f"https://www.youtube.com/watch?v={playlist_id[2:]}&list={playlist_id}"
+            logger.info(f"Mix 플레이리스트 감지됨, 수정된 URL: {url}")
+        
+        ydl_opts = {
+            'quiet': True,
+            'extract_flat': True,
+            'force_generic_extractor': False
+        }
+        logger.debug(f"yt-dlp 옵션 설정: {ydl_opts}")
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            logger.info("플레이리스트 정보 추출 시작")
+            info = ydl.extract_info(url, download=False)
+            logger.debug(f"추출된 정보: {info.get('title', 'No title')} ({len(info.get('entries', [])) if 'entries' in info else 0} videos)")
+            
+            videos = []
+            
+            if 'entries' in info:
+                logger.info(f"비디오 항목 처리 시작 (총 {len(info['entries'])}개)")
+                for i, entry in enumerate(info['entries'], 1):
+                    if entry:
+                        video_info = {
+                            "id": entry.get('id'),
+                            "title": entry.get('title'),
+                            "thumbnail": entry.get('thumbnail', f"https://img.youtube.com/vi/{entry.get('id')}/maxresdefault.jpg")
+                        }
+                        videos.append(video_info)
+                        logger.debug(f"비디오 {i} 처리됨: {video_info['title']}")
+                    else:
+                        logger.warning(f"비디오 {i}는 빈 항목입니다")
+            else:
+                logger.warning("플레이리스트에서 비디오 목록을 찾을 수 없습니다")
+            
+            result = {
+                "playlist_title": info.get('title', 'Untitled Playlist'),
+                "videos": videos
+            }
+            logger.info(f"플레이리스트 정보 가져오기 완료: {result['playlist_title']} ({len(videos)} videos)")
+            return result
+            
+    except Exception as e:
+        logger.error(f"플레이리스트 정보 가져오기 실패: {str(e)}", exc_info=True)
+        raise Exception(f"플레이리스트 정보를 가져오는데 실패했습니다: {str(e)}") 
