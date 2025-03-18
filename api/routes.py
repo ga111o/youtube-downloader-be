@@ -32,12 +32,23 @@ async def get_file(download_id: str, background_tasks: BackgroundTasks):
     try:
         file_path = downloader_service.get_download_file_path(download_id)
         
+        # 다운로드 상태에서 원래 제목 가져오기
+        status_info = downloader_service.get_download_status(download_id)
+        original_title = status_info.get("title", "audio")
+        
+        # 파일 확장자 가져오기
+        _, ext = os.path.splitext(file_path)
+        # 안전한 파일명 생성 (공백을 언더스코어로 변경하고 특수문자 제거)
+        safe_title = "".join(c for c in original_title if c.isalnum() or c in (' ', '-', '_')).strip()
+        safe_title = safe_title.replace(' ', '_')
+        download_filename = f"{safe_title}{ext}"
+        
         # 파일 다운로드 후 자동 정리 예약
         background_tasks.add_task(downloader_service.cleanup_file, file_path)
         
         return FileResponse(
             path=file_path, 
-            filename=os.path.basename(file_path),
+            filename=download_filename,  # 원래 제목으로 다운로드되도록 설정
             media_type="audio/mpeg"
         )
     except KeyError as e:
