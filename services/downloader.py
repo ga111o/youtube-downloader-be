@@ -34,6 +34,15 @@ def start_download(url: str, format: str = "mp3") -> Dict[str, Any]:
     }
     
     try:
+        # 파일명 길이 제한 함수
+        def limit_filename_length(info):
+            title = info.get('title', 'audio')
+            # 파일명 최대 길이 제한 (확장자와 경로 고려하여 여유 있게 설정)
+            max_length = 100
+            if len(title) > max_length:
+                title = title[:max_length] + "..."
+            return title
+        
         # yt-dlp 옵션 설정
         ydl_opts = {
             'format': 'bestaudio/best',
@@ -44,12 +53,18 @@ def start_download(url: str, format: str = "mp3") -> Dict[str, Any]:
             }],
             'outtmpl': os.path.join(download_path, '%(title)s.%(ext)s'),
             'quiet': True,
+            # 파일명 처리를 위한 콜백 추가
+            'parse_metadata': limit_filename_length
         }
         
         # 다운로드 실행
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             title = info.get('title', 'audio')
+            
+            # 제목이 너무 길면 잘라내기
+            if len(title) > 100:
+                title = title[:100] + "..."
             
             # 다운로드된 파일 경로 확인
             file_name = f"{title}.{format}"
