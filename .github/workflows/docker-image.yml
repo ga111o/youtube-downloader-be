@@ -1,0 +1,69 @@
+name: Build and Deploy Docker Image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Log in to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.ENV }}" > .env
+
+      - name: Build and tag Docker image
+        run: |
+          docker build --no-cache -t ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest --build-arg ENV_FILE=.env .
+          docker tag ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest
+
+      - name: Push Docker image to Docker Hub
+        run: |
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Install SSH and sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssh-client sshpass
+
+      - name: Log in to Docker Hub on the server
+        run: |
+          echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Deploy to Server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_PASS: ${{ secrets.SSH_PASS }}
+        run: |
+          echo "Starting deployment..."
+
+          echo "!!"
+          echo "SSH command: ssh -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST"
+          echo "!!"
+
+          sshpass -p $SSH_PASS ssh -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST << 'EOF'
+          echo "succeed ssh login"
+            IMAGE="${{ secrets.DOCKER_HUB_USERNAME }}/youtube_downloader_be:latest"
+            sudo docker pull $IMAGE
+            sudo docker stop youtube_downloader_be || true
+            sudo docker rm youtube_downloader_be || true
+            sudo docker run -d --name youtube_downloader_be --network host -p 53241:53241 $IMAGE || echo "Failed to start container"
+            sudo docker logs youtube_downloader_be
+            sudo docker system prune -af
+          EOF
