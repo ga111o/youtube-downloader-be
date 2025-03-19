@@ -70,13 +70,61 @@ async def websocket_endpoint(websocket: WebSocket):
                 request = json.loads(data)
                 url = request.get('url')
                 format_type = request.get('format', 'mp3')
+                request_type = request.get('type')
 
                 if not url:
                     await manager.send_personal_message("URL is required", websocket)
                     continue
-
+                
+                # 플레이리스트 처리
+                if request_type == 'playlist':
+                    await manager.send_personal_message("플레이리스트 처리 중...", websocket)
+                    
+                    # 플레이리스트에서 영상 URL만 추출하는 옵션
+                    playlist_opts = {
+                        'quiet': True,
+                        'extract_flat': 'in_playlist',
+                        'skip_download': True,
+                        'no_warnings': True,
+                    }
+                    
+                    try:
+                        with yt_dlp.YoutubeDL(playlist_opts) as ydl:
+                            print(f"Extracting playlist: {url}")
+                            playlist_info = ydl.extract_info(url, download=False)
+                            videos = []
+                            
+                            # 플레이리스트 항목 추출
+                            if 'entries' in playlist_info:
+                                for entry in playlist_info['entries']:
+                                    if entry:
+                                        if 'id' in entry:
+                                            videos.append(f"https://www.youtube.com/watch?v={entry['id']}")
+                                            print(f"Added video: {entry['id']}")
+                                        elif 'url' in entry:
+                                            videos.append(entry['url'])
+                                            print(f"Added video by URL: {entry['url']}")
+                            
+                            print(f"Found {len(videos)} videos in playlist")
+                            
+                            # 클라이언트에 비디오 URL 목록 전송
+                            response = {
+                                "type": "playlist_videos",
+                                "videos": videos
+                            }
+                            
+                            await manager.send_personal_message(json.dumps(response), websocket)
+                            continue
+                    except Exception as e:
+                        print(f"Playlist extraction error: {str(e)}")
+                        await manager.send_personal_message(f"플레이리스트 처리 오류: {str(e)}", websocket)
+                        continue
+                
                 ydl_opts = {
-                    'outtmpl': 'downloads/%(title)s.%(ext)s',
+                    'outtmpl': 'downloads/%(title).50s.%(ext)s',
+                    'restrictfilenames': False,
+                    'windowsfilenames': True,
+                    'force_filename': True,
                 }
 
                 if format_type == 'mp3':
