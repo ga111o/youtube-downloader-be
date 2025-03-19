@@ -131,11 +131,25 @@ async def websocket_endpoint(websocket: WebSocket):
                     print("mp3 download start")
                     ydl_opts.update({
                         'format': 'bestaudio/best',
-                        'postprocessors': [{
-                            'key': 'FFmpegExtractAudio',
-                            'preferredcodec': 'mp3',
-                            'preferredquality': '192',
-                        }],
+                        'postprocessors': [
+                            {
+                                'key': 'FFmpegExtractAudio',
+                                'preferredcodec': 'mp3',
+                                'preferredquality': '320',
+                            },
+                            {
+                                'key': 'EmbedThumbnail',
+                                'already_have_thumbnail': False,
+                            },
+                            {
+                                'key': 'FFmpegMetadata',
+                                'add_metadata': True,
+                            },
+                        ],
+                        'writethumbnail': True,
+                        'prefer_ffmpeg': True,
+                        'audioformat': 'mp3',
+                        'audioquality': '0',
                     })
                 elif format_type == 'mp4':
                     print("mp4 download start")
