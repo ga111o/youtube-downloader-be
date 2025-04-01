@@ -135,7 +135,6 @@ async def websocket_endpoint(websocket: WebSocket):
                             {
                                 'key': 'FFmpegExtractAudio',
                                 'preferredcodec': 'mp3',
-                                'preferredquality': '320',
                             },
                             {
                                 'key': 'EmbedThumbnail',
@@ -148,7 +147,6 @@ async def websocket_endpoint(websocket: WebSocket):
                         ],
                         'writethumbnail': True,
                         'prefer_ffmpeg': True,
-                        'audioformat': 'mp3',
                         'audioquality': '0',
                     })
                 elif format_type == 'mp4':
